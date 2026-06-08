@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#e8593a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="英语助手">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>英语学习助手 · CET-4</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f5f0; --card:#fff; --text:#2c2c28; --sub:#6b6b60;
+  --accent:#e8593a; --accent2:#3a89c8; --green:#3a9d5e; --gold:#d4a030;
+  --border:#e0ded5; --shadow:0 2px 12px rgba(0,0,0,.06);
+  --correct:#e6f5ea; --wrong:#fde8e5; --selected:#e8f0fa;
+}
+body{
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh;
+  display:flex; justify-content:center;
+}
+.app{width:100%;max-width:720px;min-height:100vh;display:flex;flex-direction:column}
+
+/* Header */
+.header{
+  background:var(--card); padding:16px 20px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:10;
+}
+.header h1{font-size:20px;font-weight:700;letter-spacing:-.02em}
+.header h1 span{color:var(--accent)}
+.stats-row{display:flex;gap:16px;font-size:13px;color:var(--sub)}
+.stats-row b{color:var(--text)}
+
+/* Tabs */
+.tabs{
+  display:flex; background:var(--card); border-bottom:1px solid var(--border);
+  position:sticky; top:57px; z-index:10;
+}
+.tab{
+  flex:1;padding:12px 8px;text-align:center;font-size:13px;font-weight:600;
+  color:var(--sub);cursor:pointer;border-bottom:3px solid transparent;
+  transition:all .15s; user-select:none;
+}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-icon{display:block;font-size:20px;margin-bottom:2px}
+
+/* Main content */
+.main{flex:1;padding:20px;overflow-y:auto}
+
+/* Card */
+.card{background:var(--card);border-radius:16px;padding:28px 24px;margin-bottom:16px;box-shadow:var(--shadow)}
+.word-display{font-size:42px;font-weight:700;text-align:center;padding:24px 0;letter-spacing:-.01em;color:var(--text)}
+.word-phonetic{text-align:center;font-size:14px;color:var(--sub);margin-top:-20px;margin-bottom:8px}
+.sentence-display{font-size:20px;line-height:1.7;text-align:center;padding:16px 0;color:var(--text)}
+.sentence-display .blank{color:var(--accent);font-weight:700;border-bottom:3px solid var(--accent);padding:0 8px;min-width:80px;display:inline-block}
+.category-tag{display:inline-block;font-size:11px;padding:4px 10px;border-radius:20px;background:#f0ede5;color:var(--sub);margin-bottom:12px}
+
+/* Options */
+.options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.option{
+  padding:14px 16px;border:2px solid var(--border);border-radius:12px;
+  font-size:15px;cursor:pointer;transition:all .2s;background:var(--card);
+  text-align:center; user-select:none;line-height:1.4;
+}
+.option:hover{border-color:var(--accent2);background:var(--selected)}
+.option.correct{border-color:var(--green);background:var(--correct);color:#1a5830}
+.option.wrong{border-color:var(--accent);background:var(--wrong);color:#8b1a1a}
+.option:disabled{pointer-events:none}
+
+/* Feedback */
+.feedback{
+  text-align:center;padding:16px;margin-top:12px;border-radius:12px;
+  font-weight:600;display:none;font-size:15px;
+}
+.feedback.show{display:block}
+.feedback.correct{background:var(--correct);color:#1a5830}
+.feedback.wrong{background:var(--wrong);color:#8b1a1a}
+
+/* Buttons */
+.btn{
+  display:inline-block;padding:12px 28px;border:none;border-radius:25px;
+  font-size:15px;font-weight:600;cursor:pointer;transition:all .15s;
+  text-align:center;
+}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-secondary{background:#eee;color:var(--text)}
+.btn-secondary:hover{background:#ddd}
+.btn-small{padding:8px 16px;font-size:13px;border-radius:20px}
+
+.btn-row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+
+/* Word Book */
+.word-list{display:flex;flex-direction:column;gap:6px}
+.word-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;background:var(--card);border-radius:10px;
+  border:1px solid var(--border);gap:10px;
+}
+.word-item .eng{font-weight:700;font-size:16px}
+.word-item .chn{color:var(--sub);font-size:14px;flex:1}
+.word-item .pos{font-size:11px;color:var(--accent2);background:#e8f0fa;padding:2px 8px;border-radius:10px}
+.word-count{text-align:center;color:var(--sub);font-size:13px;padding:8px}
+.empty-state{text-align:center;padding:40px;color:var(--sub)}
+.empty-state .icon{font-size:48px;display:block;margin-bottom:8px}
+
+/* Progress */
+.progress-bar{height:6px;background:var(--border);border-radius:3px;margin:8px 0;overflow:hidden}
+.progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .3s}
+
+/* Filter chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.chip{padding:6px 14px;border-radius:16px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);transition:.15s}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chip:hover:not(.active){border-color:var(--accent2)}
+
+/* Review flashcard */
+.flashcard{perspective:800px;height:200px;cursor:pointer;margin:16px 0}
+.flashcard-inner{position:relative;width:100%;height:100%;transition:transform .4s;transform-style:preserve-3d}
+.flashcard-inner.flipped{transform:rotateY(180deg)}
+.flashcard-front,.flashcard-back{
+  position:absolute;inset:0;backface-visibility:hidden;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:16px;font-size:24px;font-weight:700;
+}
+.flashcard-front{background:var(--card);border:2px solid var(--border)}
+.flashcard-back{background:var(--accent2);color:#fff;transform:rotateY(180deg);font-size:18px;flex-direction:column;gap:4px}
+.flashcard-back small{font-size:13px;opacity:.8}
+
+@media(max-width:500px){
+  .options{grid-template-columns:1fr}
+  .word-display{font-size:32px}
+  .sentence-display{font-size:17px}
+  .tab{font-size:11px}.tab-icon{font-size:16px}
+  .stats-row{font-size:11px;gap:8px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Header -->
+  <div class="header">
+    <h1>📚 英语<span>助手</span></h1>
+    <div class="stats-row">
+      📅 连对:<b id="streak">0</b> &nbsp; ✅ <b id="correctCount">0</b> &nbsp; 📝 <b id="totalCount">0</b>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="word"><span class="tab-icon">📝</span>单词选择</div>
+    <div class="tab" data-tab="fill"><span class="tab-icon">✏️</span>句子填空</div>
+    <div class="tab" data-tab="sentence"><span class="tab-icon">📖</span>句子理解</div>
+    <div class="tab" data-tab="review"><span class="tab-icon">🔄</span>复习</div>
+    <div class="tab" data-tab="book"><span class="tab-icon">📒</span>单词本</div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+// ============================================================
+//  ENGLISH LEARNING APP — CET-4 Level
+// ============================================================
+
+// ---- State ----
+const state = {
+  tab: 'word',
+  streak: 0, correct: 0, total: 0,
+  currentQuestion: null,
+  answered: false,
+  wordBook: JSON.parse(localStorage.getItem('en_wordbook') || '[]'),
+  history: JSON.parse(localStorage.getItem('en_history') || '[]'),
+};
+
+function save() {
+  localStorage.setItem('en_wordbook', JSON.stringify(state.wordBook));
+  localStorage.setItem('en_history', JSON.stringify(state.history));
+}
+
+// ============================================================
+//  WORD BANK — CET-4 Vocabulary (300+ words)
+//  [word, chinese_meaning, part_of_speech]
+// ============================================================
+const VOCAB = [
+  ["abandon","放弃；遗弃","v."],["ability","能力；才能","n."],["absent","缺席的；不在的","adj."],
+  ["absorb","吸收；吸引","v."],["abstract","抽象的；摘要","adj./n."],["abundant","丰富的；充裕的","adj."],
+  ["academic","学术的；学院的","adj."],["accelerate","加速；促进","v."],["access","进入；通道；访问","n./v."],
+  ["accompany","陪伴；伴随","v."],["accomplish","完成；实现","v."],["accurate","准确的；精确的","adj."],
+  ["achieve","达到；取得","v."],["acknowledge","承认；确认","v."],["acquire","获得；习得","v."],
+  ["adapt","适应；改编","v."],["adequate","足够的；适当的","adj."],["adjust","调整；适应","v."],
+  ["admire","钦佩；赞赏","v."],["adopt","采用；收养","v."],["advance","前进；进步","v./n."],
+  ["advantage","优势；有利条件","n."],["advertise","做广告；宣传","v."],["affair","事务；事件","n."],
+  ["affect","影响；感动","v."],["afford","负担得起；提供","v."],["aggressive","侵略的；好斗的","adj."],
+  ["allocate","分配；拨出","v."],["alter","改变；修改","v."],["alternative","替代的；选择","adj./n."],
+  ["amaze","使惊奇；使惊愕","v."],["ambition","雄心；野心","n."],["analyze","分析；解析","v."],
+  ["anniversary","周年纪念日","n."],["announce","宣布；宣告","v."],["annual","每年的；年度的","adj."],
+  ["anticipate","预期；期望","v."],["anxiety","焦虑；忧虑","n."],["apparent","明显的；表面上的","adj."],
+  ["appeal","呼吁；吸引；上诉","v./n."],["appetite","食欲；胃口","n."],["apply","申请；应用","v."],
+  ["appoint","任命；约定","v."],["appreciate","欣赏；感激","v."],["approach","接近；方法","v./n."],
+  ["appropriate","适当的；合适的","adj."],["approve","批准；赞成","v."],["arise","出现；产生","v."],
+  ["arrange","安排；整理","v."],["aspect","方面；层面","n."],["assemble","集合；组装","v."],
+  ["assess","评估；评定","v."],["assign","分配；指派","v."],["assist","帮助；协助","v."],
+  ["associate","联系；关联","v."],["assume","假设；承担","v."],["atmosphere","气氛；大气","n."],
+  ["attach","附上；连接","v."],["attempt","尝试；企图","v./n."],["attend","参加；出席","v."],
+  ["attitude","态度；看法","n."],["attract","吸引；引起","v."],["authority","权威；当局","n."],
+  ["available","可用的；有效的","adj."],["average","平均的；普通的","adj./n."],["avoid","避免；回避","v."],
+  ["aware","意识到的；知道的","adj."],["barrier","障碍；屏障","n."],["battle","战斗；斗争","n./v."],
+  ["behave","行为；表现","v."],["belief","信念；信仰","n."],["benefit","利益；好处","n./v."],
+  ["bother","打扰；烦恼","v."],["boundary","边界；界限","n."],["brand","品牌；商标","n."],
+  ["budget","预算","n./v."],["burden","负担；重担","n."],["campaign","运动；战役","n."],
+  ["capable","有能力的","adj."],["capacity","容量；能力","n."],["capture","捕获；俘获","v."],
+  ["career","职业；生涯","n."],["category","类别；种类","n."],["cause","原因；事业；引起","n./v."],
+  ["cautious","谨慎的；小心的","adj."],["cease","停止；终止","v."],["challenge","挑战；质疑","n./v."],
+  ["character","性格；角色；字符","n."],["characteristic","特征；特点","n./adj."],["circumstance","环境；情况","n."],
+  ["civilization","文明；文化","n."],["claim","声称；要求","v./n."],["classify","分类；归类","v."],
+  ["climate","气候；风气","n."],["collapse","倒塌；崩溃","v."],["combine","结合；联合","v."],
+  ["command","命令；指挥","v./n."],["comment","评论；意见","n./v."],["commission","委员会；佣金","n."],
+  ["commit","犯(罪)；承诺；投入","v."],["communicate","交流；沟通","v."],["community","社区；团体","n."],
+  ["companion","同伴；伙伴","n."],["compare","比较；对比","v."],["compete","竞争；比赛","v."],
+  ["complain","抱怨；投诉","v."],["complex","复杂的；复合体","adj./n."],["component","成分；组件","n."],
+  ["compose","组成；创作","v."],["comprehensive","全面的；综合的","adj."],["concentrate","集中；专注","v."],
+  ["concept","概念；观念","n."],["concern","关心；担忧","v./n."],["conclude","总结；得出结论","v."],
+  ["conduct","行为；进行","n./v."],["conference","会议；讨论会","n."],["confident","自信的；确信的","adj."],
+  ["confirm","确认；证实","v."],["conflict","冲突；矛盾","n./v."],["confuse","使困惑；混淆","v."],
+  ["congress","国会；代表大会","n."],["connect","连接；联系","v."],["conscious","有意识的；清醒的","adj."],
+  ["consequence","结果；后果","n."],["conservative","保守的","adj."],["consider","考虑；认为","v."],
+  ["consist","由…组成；在于","v."],["constant","不断的；常数","adj./n."],["construct","建造；构建","v."],
+  ["consult","咨询；查阅","v."],["consume","消费；消耗","v."],["contact","接触；联系","v./n."],
+  ["contain","包含；容纳","v."],["contemporary","当代的；同时代的","adj."],["content","内容；满足的","n./adj."],
+  ["contest","竞赛；比赛","n./v."],["context","背景；上下文","n."],["contract","合同；收缩","n./v."],
+  ["contribute","贡献；捐献","v."],["convenient","方便的；便利的","adj."],["convention","惯例；大会","n."],
+  ["convince","说服；使信服","v."],["cooperate","合作；协作","v."],["corporation","公司；企业","n."],
+  ["correspond","对应；通信","v."],["council","理事会；委员会","n."],["county","县；郡","n."],
+  ["crash","碰撞；坠毁","v./n."],["create","创造；创建","v."],["crime","犯罪；罪行","n."],
+  ["crisis","危机；紧要关头","n."],["criterion","标准；准则","n."],["critical","批评的；关键的","adj."],
+  ["cultivate","培养；耕作","v."],["curiosity","好奇心","n."],["current","当前的；水流","adj./n."],
+  ["debate","辩论；争论","n./v."],["decade","十年","n."],["decline","下降；拒绝","v./n."],
+  ["decorate","装饰；装潢","v."],["decrease","减少；降低","v./n."],["defend","防御；辩护","v."],
+  ["define","定义；界定","v."],["definitely","肯定地；明确地","adv."],["deliver","递送；发表","v."],
+  ["demand","要求；需求","v./n."],["demonstrate","演示；证明","v."],["depart","离开；出发","v."],
+  ["depend","依靠；取决于","v."],["deposit","存放；押金","v./n."],["depress","使沮丧；压低","v."],
+  ["derive","源于；获得","v."],["describe","描述；形容","v."],["deserve","值得；应得","v."],
+  ["desire","渴望；欲望","v./n."],["despite","尽管；不管","prep."],["destination","目的地","n."],
+  ["destroy","破坏；毁灭","v."],["determine","决定；确定","v."],["develop","发展；开发","v."],
+  ["device","设备；装置","n."],["devote","致力于；奉献","v."],["differ","不同；相异","v."],
+  ["digest","消化；文摘","v./n."],["digital","数字的；数码的","adj."],["diligent","勤奋的；勤勉的","adj."],
+  ["diminish","减少；缩小","v."],["diplomat","外交官","n."],["discipline","纪律；学科","n."],
+  ["discount","折扣","n./v."],["discriminate","歧视；区别","v."],["disorder","混乱；失调","n."],
+  ["display","展示；显示","v./n."],["dispute","争论；纠纷","v./n."],["dissolve","溶解；解散","v."],
+  ["distinct","明显的；不同的","adj."],["distinguish","区分；辨别","v."],["distribute","分配；分发","v."],
+  ["district","地区；区域","n."],["diverse","多样的；不同的","adj."],["document","文件；文档","n."],
+  ["domestic","国内的；家庭的","adj."],["dominate","支配；主导","v."],["dramatic","戏剧性的；巨大的","adj."],
+  ["drastic","激烈的；极端的","adj."],["drown","淹死；淹没","v."],["durable","耐用的；持久的","adj."],
+  ["dynamic","动态的；有活力的","adj."],["earnest","认真的；诚挚的","adj."],["economy","经济；节约","n."],
+  ["edition","版本；版次","n."],["efficient","高效的","adj."],["elaborate","精心制作的；详尽的","adj."],
+  ["election","选举","n."],["element","元素；要素","n."],["eliminate","消除；淘汰","v."],
+  ["embrace","拥抱；包含","v."],["emerge","出现；浮现","v."],["emotion","情感；情绪","n."],
+  ["emphasis","强调；重点","n."],["employ","雇用；使用","v."],["enable","使能够；启用","v."],
+  ["encounter","遇到；遭遇","v./n."],["encourage","鼓励；激励","v."],["enforce","执行；强制","v."],
+  ["engage","从事；订婚；吸引","v."],["enormous","巨大的；庞大的","adj."],["ensure","确保；保证","v."],
+  ["enterprise","企业；事业","n."],["enthusiasm","热情；热忱","n."],["entire","整个的；全部的","adj."],
+  ["environment","环境","n."],["equipment","设备；装备","n."],["equivalent","等价的；等同物","adj./n."],
+  ["essential","必要的；本质的","adj."],["establish","建立；设立","v."],["estate","房地产；庄园","n."],
+  ["estimate","估计；评估","v./n."],["evaluate","评价；评估","v."],["eventually","最终；终于","adv."],
+  ["evidence","证据；迹象","n."],["evident","明显的；明白的","adj."],["evolution","进化；演变","n."],
+  ["exactly","精确地；正好","adv."],["examine","检查；考试","v."],["exception","例外","n."],
+  ["exchange","交换；兑换","v./n."],["exclude","排除；排斥","v."],["execute","执行；处决","v."],
+  ["exhibit","展览；展示","v./n."],["exist","存在；生存","v."],["expand","扩展；膨胀","v."],
+  ["expect","期望；预期","v."],["expense","费用；代价","n."],["experiment","实验；试验","n./v."],
+  ["expert","专家；行家","n."],["explain","解释；说明","v."],["explicit","明确的；直言的","adj."],
+  ["exploit","开发；剥削","v."],["explore","探索；探究","v."],["export","出口；输出","v./n."],
+  ["expose","暴露；揭露","v."],["extend","延伸；扩展","v."],["extensive","广泛的；大量的","adj."],
+  ["extent","程度；范围","n."],["external","外部的；外来的","adj."],["extraordinary","非凡的；特别的","adj."],
+  ["extreme","极端的；极度的","adj."],["facility","设施；设备","n."],["factor","因素；因子","n."],
+  ["faith","信仰；信任","n."],["famine","饥荒","n."],["fascinate","使着迷；迷住","v."],
+  ["fashion","时尚；方式","n."],["fatal","致命的；毁灭性的","adj."],["feature","特征；特色","n."],
+  ["finance","金融；财务","n."],["flexible","灵活的；柔韧的","adj."],["flourish","繁荣；兴旺","v."],
+  ["focus","焦点；集中","n./v."],["forbid","禁止；不许","v."],["forecast","预报；预测","v./n."],
+  ["former","前者的；以前的","adj."],["fortune","财富；运气","n."],["foundation","基础；基金会","n."],
+  ["fraction","小部分；分数","n."],["frequent","频繁的；经常的","adj."],["frontier","边境；前沿","n."],
+  ["fulfill","完成；满足","v."],["function","功能；作用","n./v."],["fundamental","基本的；根本的","adj."],
+  ["furthermore","此外；而且","adv."],["generate","产生；生成","v."],["generous","慷慨的；大方的","adj."],
+  ["genuine","真正的；真诚的","adj."],["global","全球的；全面的","adj."],["gradual","逐渐的","adj."],
+  ["guarantee","保证；担保","v./n."],["guidance","指导；引导","n."],["handle","处理；把手","v./n."],
+  ["hardship","困难；艰辛","n."],["harmony","和谐；协调","n."],["hesitate","犹豫；迟疑","v."],
+  ["highlight","强调；亮点","v./n."],["horizon","地平线；眼界","n."],["identical","相同的；一样的","adj."],
+  ["identify","识别；确认","v."],["ignore","忽视；不理睬","v."],["illustrate","说明；阐明","v."],
+  ["imagination","想象力","n."],["immediate","立即的；直接的","adj."],["immigrant","移民","n."],
+  ["impact","影响；冲击","n./v."],["implement","实施；执行","v."],["imply","暗示；意味","v."],
+  ["impose","强加；征收","v."],["impress","给…留下印象","v."],["incident","事件；事变","n."],
+  ["income","收入；所得","n."],["increase","增加；增长","v./n."],["independent","独立的","adj."],
+  ["indicate","表明；指示","v."],["individual","个人；个体的","n./adj."],["influence","影响；势力","n./v."],
+  ["inform","通知；告知","v."],["initial","最初的；首字母","adj./n."],["initiative","主动性；倡议","n."],
+  ["innocent","无辜的；天真的","adj."],["innovation","创新；革新","n."],["inspire","激励；启发","v."],
+  ["install","安装；设置","v."],["instance","例子；实例","n."],["institute","学院；机构","n."],
+  ["instrument","工具；乐器","n."],["insurance","保险","n."],["intellectual","智力的；知识分子","adj./n."],
+  ["intelligent","聪明的；智能的","adj."],["intense","强烈的；紧张的","adj."],["intention","意图；目的","n."],
+  ["interact","互动；相互作用","v."],["interfere","干涉；干扰","v."],["internal","内部的；国内的","adj."],
+  ["interpret","解释；口译","v."],["interval","间隔；间歇","n."],["invade","入侵；侵略","v."],
+  ["invest","投资；投入","v."],["investigate","调查；研究","v."],["involve","涉及；包含","v."],
+  ["isolate","隔离；孤立","v."],["issue","问题；发行","n./v."],["judgment","判断；判决","n."],
+  ["justice","正义；公正","n."],["justify","证明…正当","v."],["keen","热衷的；敏锐的","adj."],
+  ["launch","发射；启动","v./n."],["layer","层；层次","n."],["leak","泄漏；泄露","v./n."],
+  ["liberal","自由的；开明的","adj."],["liberty","自由","n."],["likewise","同样地；也","adv."],
+  ["limitation","限制；局限","n."],["linguistic","语言的；语言学的","adj."],["link","链接；联系","n./v."],
+  ["locate","位于；定位","v."],["logic","逻辑","n."],["maintain","维持；保养","v."],
+  ["major","主要的；专业","adj./n."],["manage","管理；设法","v."],["manufacture","制造；生产","v./n."],
+  ["massive","巨大的；大量的","adj."],["mature","成熟的","adj."],["maximum","最大的；最大值","adj./n."],
+  ["measure","测量；措施","v./n."],["mechanism","机制；机械","n."],["medium","中等的；媒介","adj./n."],
+  ["mental","精神的；心理的","adj."],["merchant","商人","n."],["merely","仅仅；只不过","adv."],
+  ["military","军事的；军队","adj./n."],["minimum","最小的；最小值","adj./n."],["minor","较小的；次要的","adj."],
+  ["miracle","奇迹","n."],["mission","任务；使命","n."],["moderate","适度的；温和的","adj."],
+  ["modify","修改；调整","v."],["monitor","监视；监控","v./n."],["mood","心情；情绪","n."],
+  ["moral","道德的；寓意","adj./n."],["motive","动机；目的","n."],["mutual","相互的；共同的","adj."],
+  ["narrow","狭窄的；狭隘的","adj."],["necessity","必要性；必需品","n."],["negative","消极的；否定的","adj."],
+  ["negotiate","谈判；协商","v."],["network","网络","n."],["neutral","中立的","adj."],
+  ["nevertheless","然而；不过","adv."],["normal","正常的；标准的","adj."],["notion","概念；想法","n."],
+  ["nuclear","核的；原子核的","adj."],["numerous","许多的；大量的","adj."],["object","物体；反对","n./v."],
+  ["objective","目标；客观的","n./adj."],["obligation","义务；责任","n."],["observation","观察；观测","n."],
+  ["obtain","获得；得到","v."],["obvious","明显的","adj."],["occasion","场合；时机","n."],
+  ["occupy","占据；占领","v."],["offend","冒犯；得罪","v."],["operate","操作；运营","v."],
+  ["opponent","对手；反对者","n."],["opportunity","机会","n."],["oppose","反对；对抗","v."],
+  ["option","选择；选项","n."],["ordinary","普通的；平常的","adj."],["organize","组织；安排","v."],
+  ["origin","起源；来源","n."],["otherwise","否则；另外","adv."],["outcome","结果；成果","n."],
+  ["outstanding","杰出的；突出的","adj."],["overall","总体的；全面的","adj./adv."],["overcome","克服；战胜","v."],
+  ["overseas","海外的；在海外","adj./adv."],["pace","步伐；速度","n."],["participate","参与；参加","v."],
+  ["particular","特定的；挑剔的","adj."],["passion","热情；激情","n."],["passive","被动的；消极的","adj."],
+  ["patent","专利","n."],["patience","耐心；忍耐","n."],["peculiar","奇怪的；独特的","adj."],
+  ["perceive","感知；察觉","v."],["perform","表演；执行","v."],["permanent","永久的；固定的","adj."],
+  ["permission","许可；允许","n."],["persist","坚持；持续","v."],["personality","个性；人格","n."],
+  ["perspective","视角；观点","n."],["phenomenon","现象","n."],["philosophy","哲学","n."],
+  ["physical","身体的；物理的","adj."],["policy","政策；方针","n."],["pollution","污染","n."],
+  ["portion","部分；一份","n."],["possess","拥有；具有","v."],["potential","潜力；潜在的","n./adj."],
+  ["poverty","贫穷；贫困","n."],["practical","实际的；实用的","adj."],["precious","珍贵的；宝贵的","adj."],
+  ["predict","预测；预言","v."],["prefer","更喜欢；偏好","v."],["pregnant","怀孕的","adj."],
+  ["prejudice","偏见","n."],["preserve","保存；保护","v."],["pressure","压力；压迫","n."],
+  ["previous","先前的；以前的","adj."],["principal","主要的；校长","adj./n."],["principle","原则；原理","n."],
+  ["priority","优先；重点","n."],["procedure","程序；步骤","n."],["process","过程；处理","n./v."],
+  ["professional","专业的；职业的","adj."],["profit","利润；收益","n."],["progress","进步；进展","n./v."],
+  ["prohibit","禁止；阻止","v."],["project","项目；计划","n."],["promote","促进；晋升","v."],
+  ["property","财产；性质","n."],["proportion","比例；部分","n."],["proposal","提议；建议","n."],
+  ["prospect","前景；展望","n."],["prosperity","繁荣；兴旺","n."],["protest","抗议；反对","v./n."],
+  ["prove","证明；证实","v."],["psychology","心理学","n."],["publish","出版；发表","v."],
+  ["purchase","购买","v./n."],["pursue","追求；追赶","v."],["qualify","使合格；限定","v."],
+  ["range","范围；山脉","n."],["rapid","迅速的；快的","adj."],["rare","稀有的；罕见的","adj."],
+  ["rational","理性的；合理的","adj."],["react","反应；回应","v."],["realistic","现实的；实际的","adj."],
+  ["reasonable","合理的；适当的","adj."],["recognize","认出；承认","v."],["recommend","推荐；建议","v."],
+  ["recover","恢复；康复","v."],["reduce","减少；降低","v."],["refer","参考；提到","v."],
+  ["reflect","反映；反思","v."],["reform","改革；改良","v./n."],["regard","看待；尊重","v./n."],
+  ["register","登记；注册","v./n."],["regulate","调节；管理","v."],["reject","拒绝；排斥","v."],
+  ["relate","联系；叙述","v."],["release","释放；发布","v./n."],["relevant","相关的；有关的","adj."],
+  ["relief","减轻；救济","n."],["rely","依赖；依靠","v."],["remain","保持；剩余","v."],
+  ["remark","评论；注意","v./n."],["remedy","补救；治疗","n./v."],["remote","遥远的；偏僻的","adj."],
+  ["remove","移除；消除","v."],["replace","替代；替换","v."],["represent","代表；表示","v."],
+  ["reputation","名声；声誉","n."],["request","请求；要求","n./v."],["require","需要；要求","v."],
+  ["research","研究；调查","n./v."],["reserve","保留；预订","v."],["resign","辞职；放弃","v."],
+  ["resist","抵抗；抵制","v."],["resolve","解决；决心","v."],["resource","资源","n."],
+  ["respond","回应；回答","v."],["responsible","负责的；有责任的","adj."],["restore","恢复；修复","v."],
+  ["restrict","限制；约束","v."],["reveal","揭示；透露","v."],["revenue","收入；税收","n."],
+  ["revolution","革命；变革","n."],["risk","风险；冒险","n./v."],["rival","对手；竞争者","n."],
+  ["route","路线；途径","n."],["routine","常规；例行公事","n./adj."],["rural","农村的；乡下的","adj."],
+  ["sacrifice","牺牲；献祭","v./n."],["satisfy","使满意；满足","v."],["scale","规模；刻度；比例","n."],
+  ["schedule","时间表；安排","n./v."],["scheme","计划；方案","n."],["security","安全；保障","n."],
+  ["seek","寻找；寻求","v."],["select","选择；挑选","v."],["senior","高级的；年长的","adj."],
+  ["sensitive","敏感的；灵敏的","adj."],["separate","分开；分离","v./adj."],["series","系列；连续","n."],
+  ["severe","严重的；严厉的","adj."],["shelter","庇护所；遮蔽","n./v."],["shift","转移；轮班","v./n."],
+  ["shortage","短缺；不足","n."],["significant","重要的；显著的","adj."],["similar","相似的；类似的","adj."],
+  ["situation","情况；局势","n."],["sketch","素描；草图","n."],["solution","解决方案","n."],
+  ["somehow","不知怎么地","adv."],["source","来源；出处","n."],["species","物种；种类","n."],
+  ["specific","具体的；特定的","adj."],["sponsor","赞助；主办","v./n."],["stable","稳定的；稳固的","adj."],
+  ["standard","标准；规范的","n./adj."],["status","地位；状态","n."],["strategy","策略；战略","n."],
+  ["strength","力量；优势","n."],["structure","结构；构造","n."],["struggle","奋斗；斗争","v./n."],
+  ["substitute","替代品；替换","n./v."],["sufficient","足够的；充分的","adj."],["suggest","建议；暗示","v."],
+  ["summarize","总结；概括","v."],["superior","优越的；上级的","adj."],["supplement","补充；增刊","n./v."],
+  ["supply","供应；提供","v./n."],["support","支持；支撑","v./n."],["suppose","假设；认为","v."],
+  ["surface","表面；外表","n."],["surround","包围；环绕","v."],["survive","幸存；存活","v."],
+  ["suspect","怀疑；嫌疑犯","v./n."],["suspend","暂停；悬挂","v."],["sustain","维持；承受","v."],
+  ["symbol","符号；象征","n."],["sympathy","同情；同情心","n."],["symptom","症状；征兆","n."],
+  ["target","目标；靶子","n."],["technique","技巧；技术","n."],["technology","技术；科技","n."],
+  ["temporary","暂时的；临时的","adj."],["tendency","趋势；倾向","n."],["terminal","终端；末端的","n./adj."],
+  ["territory","领土；领域","n."],["thorough","彻底的；全面的","adj."],["threat","威胁；恐吓","n."],
+  ["tolerate","容忍；忍受","v."],["tradition","传统；惯例","n."],["transform","转变；改造","v."],
+  ["transition","过渡；转变","n."],["transmit","传输；传播","v."],["transport","运输；交通","v./n."],
+  ["trend","趋势；潮流","n."],["typical","典型的；通常的","adj."],["ultimate","最终的；终极的","adj."],
+  ["undergo","经历；遭受","v."],["undertake","承担；从事","v."],["unique","独特的；唯一的","adj."],
+  ["universal","普遍的；宇宙的","adj."],["urban","城市的；都市的","adj."],["urge","催促；强烈要求","v."],
+  ["utilize","利用；使用","v."],["valid","有效的；合理的","adj."],["value","价值；重视","n./v."],
+  ["variety","多样性；种类","n."],["version","版本；说法","n."],["victim","受害者；牺牲品","n."],
+  ["violent","暴力的；猛烈的","adj."],["visible","可见的；明显的","adj."],["vision","视力；愿景","n."],
+  ["vital","至关重要的","adj."],["volume","体积；音量；卷","n."],["voluntary","自愿的；志愿的","adj."],
+  ["welfare","福利；幸福","n."],["widespread","广泛的；普遍的","adj."],["witness","目击者；见证","n./v."],
+  ["yield","产量；屈服","n./v."],
+];
+
+// ============================================================
+//  SENTENCE FILL-IN-BLANK DATABASE
+//  [sentence_with_blank_用___表示, correct_answer, distractor1, distractor2, distractor3]
+// ============================================================
+const FILL_BLANKS = [
+  ["The company plans to ___ its business to overseas markets next year.","expand","reduce","maintain","abandon"],
+  ["She couldn't ___ the temptation to check her phone during the meeting.","resist","insist","consist","assist"],
+  ["Scientists are trying to ___ the impact of climate change on coastal cities.","assess","access","excess","possess"],
+  ["The new policy will ___ effect from January 1st next year.","take","give","make","have"],
+  ["He has the ___ to solve complex problems quickly.","ability","capability","probability","possibility"],
+  ["We need to find a(n) ___ to this environmental crisis.","solution","pollution","revolution","resolution"],
+  ["The professor asked us to ___ the main points of the article.","summarize","recognize","emphasize","analyze"],
+  ["Reading English novels can ___ improve your vocabulary.","significantly","significantly","occasionally","barely"],
+  ["The company ___ a profit of over 2 million dollars last year.","generated","decorated","celebrated","demonstrated"],
+  ["It is important to ___ a balance between work and personal life.","maintain","retain","contain","obtain"],
+  ["The government has taken measures to ___ unemployment.","reduce","produce","introduce","deduce"],
+  ["She was ___ to accept the job offer because of the low salary.","reluctant","eager","anxious","enthusiastic"],
+  ["The research team ___ their findings at the conference last week.","presented","prevented","pretended","preserved"],
+  ["We should ___ advantage of this opportunity to learn new skills.","take","make","get","have"],
+  ["His success can be ___ to his persistent effort and determination.","attributed","contributed","distributed","substituted"],
+  ["The city has undergone ___ changes in the past decade.","dramatic","democratic","diplomatic","automatic"],
+  ["Parents should ___ their children from harmful online content.","protect","protest","prevent","predict"],
+  ["The two countries finally reached an ___ after months of negotiation.","agreement","argument","arrangement","assignment"],
+  ["She has a very ___ personality and gets along with everyone easily.","pleasant","peasant","present","patient"],
+  ["The project was delayed ___ to lack of funding.","due","because","thanks","owing"],
+  ["It is widely ___ that regular exercise benefits both physical and mental health.","acknowledged","accomplished","accompanied","accelerated"],
+  ["The detective carefully ___ the evidence at the crime scene.","examined","exchanged","exclaimed","exceeded"],
+  ["We need to ___ the problem before making any decisions.","identify","ignore","imagine","imitate"],
+  ["He ___ most of his free time to volunteering at the animal shelter.","devotes","divides","delivers","deserves"],
+  ["The new technology has the ___ to revolutionize the entire industry.","potential","essential","influential","substantial"],
+  ["She felt a great sense of ___ after completing the marathon.","achievement","achievement","amazement","announcement"],
+  ["The government should ___ more attention to environmental protection.","pay","draw","put","set"],
+  ["Her ___ in learning languages amazed all her classmates.","progress","process","product","project"],
+  ["It is necessary to ___ between right and wrong.","distinguish","extinguish","distinct","district"],
+  ["The company is committed to ___ the highest quality of service.","providing","proving","protecting","protesting"],
+  ["We cannot ___ to ignore the importance of education any longer.","afford","effort","affect","effect"],
+  ["The invention of the internet has had a profound ___ on modern society.","impact","contract","contact","compact"],
+  ["I ___ you to think carefully before making such an important decision.","urge","surge","merge","emerge"],
+  ["The accident ___ caused by human error.","was","has","did","had"],
+  ["Students should ___ actively in classroom discussions.","participate","anticipate","separate","celebrate"],
+  ["She looked at him in ___ , unsure of what to say next.","confusion","conclusion","collision","confession"],
+  ["The library provides students with ___ to a vast collection of digital resources.","access","excess","assess","success"],
+  ["His speech ___ the audience to take action on climate change.","inspired","inquired","insured","insisted"],
+  ["Hard work and determination are the keys to ___ success.","achieving","archiving","activating","approaching"],
+  ["The company needs to ___ more staff to handle the increasing workload.","employ","deploy","enjoy","destroy"],
+  ["We should always ___ in mind that practice makes perfect.","keep","hold","put","take"],
+  ["The new regulation will ___ all businesses operating in this area.","affect","reflect","infect","defect"],
+  ["She has made a ___ recovery from the surgery.","remarkable","reasonable","recyclable","respectable"],
+  ["It took him several years to ___ the local customs and traditions.","adapt to","adopt to","add to","adhere to"],
+  ["The report ___ several areas that need immediate improvement.","highlights","highlands","highways","highbrows"],
+  ["We ___ that the project will be completed by the end of this month.","anticipate","participate","appreciate","appropriate"],
+  ["He failed to ___ up at the meeting on time.","show","turn","get","stand"],
+  ["The two cultures have many features in ___ .","common","general","normal","ordinary"],
+  ["She is ___ of managing the project on her own.","capable","able","suitable","eligible"],
+  ["The professor's lecture was so ___ that everyone was deeply impressed.","inspiring","inspiring","insisting","inspecting"],
+  ["The Chinese government has implemented a series of measures to ___ poverty.","eliminate","illuminate","dominate","nominate"],
+  ["She made a great ___ to complete the task before the deadline.","effort","affect","effect","offer"],
+  ["His ___ of responsibility impressed everyone in the team.","sense","scene","scent","science"],
+  ["We should ___ the positive aspects of this plan rather than the drawbacks.","emphasize","empathize","energize","authorize"],
+  ["The child's ___ for learning was encouraged by his parents.","enthusiasm","pessimism","mechanism","criticism"],
+];
+
+// ============================================================
+//  SENTENCE COMPREHENSION DATABASE
+//  [english_sentence, correct_chinese, wrong1, wrong2, category]
+//  Categories: daily(日常), article(文章), classic(经典)
+// ============================================================
+const SENTENCES = [
+  // Daily expressions
+  ["I'm not really in the mood for going out tonight.","我今晚不太想出门。","我今晚非常想出门。","我今晚没有出门的心情。","daily"],
+  ["Could you do me a favor and pick up my package?","你能帮我拿一下快递吗？","你能帮我包扎一下吗？","你能给我一个优惠吗？","daily"],
+  ["It's been a long day. I just want to kick back and relax.","今天太累了，我只想放松一下。","今天很长，我只想踢东西。","今天天气很好，我想出去玩。","daily"],
+  ["I've been meaning to ask you about that project.","我一直想问你关于那个项目的事。","我已经问过你关于那个项目的事了。","我根本不想提那个项目。","daily"],
+  ["That's a good point. I hadn't thought of it that way.","说得好，我之前没想到这一点。","那个点很好，我没想过要去那里。","这是个好分数，我之前没这样想过。","daily"],
+  ["Let me sleep on it and I'll give you an answer tomorrow.","让我考虑一晚，明天给你答复。","让我睡在上面，明天回答你。","让我睡觉，明天再问你。","daily"],
+  ["You can't judge a book by its cover.","不能以貌取人。","你不能评价一本书的封面。","你不能用封面来判断书的内容。","daily"],
+  ["It's easier said than done.","说起来容易做起来难。","这比做起来更容易。","说话比做事更简单。","daily"],
+  ["He offered to give me a hand with the heavy boxes.","他主动帮我搬那些重箱子。","他给了我一只有重箱子的手。","他提议给我一只沉重的手。","daily"],
+  ["We're running out of time. We need to wrap this up.","我们没时间了，得赶紧结束。","我们正在跑步，需要包裹。","时间快到了，我们得跑起来。","daily"],
+
+  // Article sentences
+  ["Technological innovation has fundamentally transformed the way people communicate and access information globally.","技术创新从根本上改变了全球人们交流与获取信息的方式。","技术革命只在部分地区改变了人们的交流习惯。","技术创新虽然重要但并未改变信息获取的基本方式。","article"],
+  ["The researchers concluded that regular physical exercise contributes significantly to improved cognitive function in elderly populations.","研究人员得出结论，规律的体育锻炼对改善老年人的认知功能有显著贡献。","研究人员认为体育锻炼对老年人的身体功能没有任何帮助。","研究表明老年人进行体育锻炼会损害认知功能。","article"],
+  ["Environmental conservation efforts require coordination between government agencies, private sectors, and local communities to achieve sustainable outcomes.","环境保护需要政府机构、私营部门和地方社区之间协调合作，才能实现可持续发展。","环境保护只取决于政府的决策，不需要其他组织的参与。","环保工作虽然重要但主要依靠个人而非组织的力量。","article"],
+  ["The rapid urbanization in developing countries has presented both unprecedented opportunities and significant challenges for policymakers.","发展中国家快速的城市化为决策者带来了前所未有的机遇和重大挑战。","发展中国家的城市化只带来了问题而没有创造任何价值。","发达国家的城市化速度远快于发展中国家。","article"],
+  ["Critical thinking skills are essential for students to evaluate the credibility of information in an era of widespread digital media.","在数字媒体广泛传播的时代，批判性思维能力对学生评估信息可信度至关重要。","批判性思维对学生来说并不重要，只需被动接受信息即可。","数字媒体时代让学生可以不加判断地接受所有信息。","article"],
+  ["The economic growth of emerging markets has reshaped global trade patterns and attracted substantial foreign investment.","新兴市场的经济增长重塑了全球贸易格局，吸引了大量外国投资。","新兴市场虽然经济增长但并未改变全球贸易格局。","发达国家仍然是唯一吸引外国投资的地区。","article"],
+  ["Recent advances in artificial intelligence have raised important ethical questions about privacy, employment, and decision-making autonomy.","人工智能的最新进展引发了关于隐私、就业和决策自主权的重要伦理问题。","人工智能的发展只带来了技术进步，没有引发任何伦理问题。","人工智能的伦理问题已经被完全解决了。","article"],
+
+  // Classic quotes
+  ["To be, or not to be, that is the question. — Shakespeare, Hamlet","生存还是毁灭，这是个问题。——莎士比亚《哈姆雷特》","活着还是死去，这是个难题。——莎士比亚《罗密欧与朱丽叶》","要不要去，这是个选择。——莎士比亚《麦克白》","classic"],
+  ["The only thing we have to fear is fear itself. — Franklin D. Roosevelt","我们唯一需要恐惧的是恐惧本身。——富兰克林·罗斯福","我们什么都不用怕。——富兰克林·罗斯福","害怕是唯一需要避免的情绪。——罗斯福","classic"],
+  ["In the middle of difficulty lies opportunity. — Albert Einstein","困难之中蕴藏着机遇。——爱因斯坦","机遇就在困难之外。——爱因斯坦","在困难的尽头才有机会。——爱因斯坦","classic"],
+  ["The journey of a thousand miles begins with a single step. — Lao Tzu","千里之行，始于足下。——老子","万里长征需要勇气开始。——老子","千山万水只需一步跨越。——老子","classic"],
+  ["Success is not final, failure is not fatal: it is the courage to continue that counts. — Winston Churchill","成功不是终点，失败不是末日：重要的是继续前行的勇气。——丘吉尔","成功是永恒的，失败是暂时的。——丘吉尔","成功与失败都不重要。——丘吉尔","classic"],
+  ["Imagination is more important than knowledge. — Albert Einstein","想象力比知识更重要。——爱因斯坦","知识胜过一切想象力。——爱因斯坦","想象力和知识同样重要。——爱因斯坦","classic"],
+  ["Stay hungry, stay foolish. — Steve Jobs","求知若渴，虚心若愚。——乔布斯","保持饥饿，保持愚蠢。——乔布斯","不要满足，不要聪明。——乔布斯","classic"],
+];
+
+// ============================================================
+//  HELPER: shuffle array
+// ============================================================
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ============================================================
+//  GENERATE WORD QUIZ
+// ============================================================
+function generateWordQuiz() {
+  // Pick a random word as the question
+  const correctIdx = Math.floor(Math.random() * VOCAB.length);
+  const correct = VOCAB[correctIdx];
+
+  // Pick 3 random distractors (different words)
+  const distractors = [];
+  const usedIdx = new Set([correctIdx]);
+  while (distractors.length < 3) {
+    const idx = Math.floor(Math.random() * VOCAB.length);
+    if (!usedIdx.has(idx)) {
+      usedIdx.add(idx);
+      distractors.push(VOCAB[idx][1]); // Chinese meaning
+    }
+  }
+
+  const options = shuffle([
+    { text: correct[1], correct: true },
+    ...distractors.map(d => ({ text: d, correct: false }))
+  ]);
+
+  return {
+    type: 'word',
+    question: correct[0],
+    phonetic: correct[2],
+    answer: correct[1],
+    options,
+    wordData: correct,
+  };
+}
+
+// ============================================================
+//  GENERATE FILL-IN-BLANK QUIZ
+// ============================================================
+function generateFillQuiz() {
+  const item = FILL_BLANKS[Math.floor(Math.random() * FILL_BLANKS.length)];
+  const [sentence, correct, ...distractors] = item;
+  const options = shuffle([
+    { text: correct, correct: true },
+    ...distractors.map(d => ({ text: d, correct: false }))
+  ]);
+  return {
+    type: 'fill',
+    question: sentence.replace('___', '<span class="blank">______</span>'),
+    answer: correct,
+    options,
+    rawSentence: sentence,
+  };
+}
+
+// ============================================================
+//  GENERATE SENTENCE COMPREHENSION QUIZ
+// ============================================================
+function generateSentenceQuiz(category = null) {
+  let pool = SENTENCES;
+  if (category && category !== 'all') {
+    pool = SENTENCES.filter(s => s[4] === category);
+  }
+  const item = pool[Math.floor(Math.random() * pool.length)];
+  const [english, chinese, wrong1, wrong2, cat] = item;
+  const options = shuffle([
+    { text: chinese, correct: true },
+    { text: wrong1, correct: false },
+    { text: wrong2, correct: false },
+  ]);
+  return {
+    type: 'sentence',
+    question: english,
+    answer: chinese,
+    options,
+    category: cat,
+  };
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+const main = document.getElementById('main');
+
+function updateStats() {
+  document.getElementById('streak').textContent = state.streak;
+  document.getElementById('correctCount').textContent = state.correct;
+  document.getElementById('totalCount').textContent = state.total;
+}
+
+function renderWordQuiz() {
+  if (!state.currentQuestion || state.currentQuestion.type !== 'word') {
+    state.currentQuestion = generateWordQuiz();
+  }
+  const q = state.currentQuestion;
+  state.answered = false;
+
+  main.innerHTML = `
+    <div class="card">
+      <div class="category-tag">📝 CET-4 词汇 · 选择正确的中文含义</div>
+      <div class="word-display">${q.question}</div>
+      <div class="word-phonetic">${q.phonetic}</div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="addToWordBook()">📒 加入单词本</button>
+      <button class="btn btn-primary" onclick="nextQuestion('word')">下一题 →</button>
+    </div>
+  `;
+
+  const optDiv = document.getElementById('options');
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'option';
+    btn.textContent = `${['A','B','C','D'][i]}. ${opt.text}`;
+    btn.addEventListener('click', () => selectOption(i, q, 'word'));
+    optDiv.appendChild(btn);
+  });
+}
+
+function renderFillQuiz() {
+  if (!state.currentQuestion || state.currentQuestion.type !== 'fill') {
+    state.currentQuestion = generateFillQuiz();
+  }
+  const q = state.currentQuestion;
+  state.answered = false;
+
+  main.innerHTML = `
+    <div class="card">
+      <div class="category-tag">✏️ 句子填空 · 选择正确的单词填入空白处</div>
+      <div class="sentence-display">${q.question}</div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="addToWordBook()">📒 记录单词</button>
+      <button class="btn btn-primary" onclick="nextQuestion('fill')">下一题 →</button>
+    </div>
+  `;
+
+  const optDiv = document.getElementById('options');
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'option';
+    btn.textContent = `${['A','B','C','D'][i]}. ${opt.text}`;
+    btn.addEventListener('click', () => selectOption(i, q, 'fill'));
+    optDiv.appendChild(btn);
+  });
+}
+
+function renderSentenceQuiz() {
+  if (!state.currentQuestion || state.currentQuestion.type !== 'sentence') {
+    state.currentQuestion = generateSentenceQuiz();
+  }
+  const q = state.currentQuestion;
+  state.answered = false;
+
+  const catLabels = { daily: '💬 日常口语', article: '📰 英文文章', classic: '🏛️ 经典名句' };
+  const currentCat = sessionStorage.getItem('sentence_cat') || 'all';
+
+  main.innerHTML = `
+    <div class="card">
+      <div class="chips">
+        ${['all','daily','article','classic'].map(c => `
+          <span class="chip ${c === currentCat ? 'active' : ''}" onclick="switchSentenceCat('${c}')">
+            ${c === 'all' ? '🎲 全部' : catLabels[c]}
+          </span>
+        `).join('')}
+      </div>
+      <div class="category-tag">${catLabels[q.category] || q.category} · 选择正确的中文翻译</div>
+      <div class="sentence-display">${q.question}</div>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="nextQuestion('sentence')">下一题 →</button>
+    </div>
+  `;
+
+  const optDiv = document.getElementById('options');
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'option';
+    btn.textContent = `${['A','B','C'][i]}. ${opt.text}`;
+    btn.addEventListener('click', () => selectOption(i, q, 'sentence'));
+    optDiv.appendChild(btn);
+  });
+}
+
+// ============================================================
+//  ANSWER HANDLING
+// ============================================================
+function selectOption(index, question, type) {
+  if (state.answered) return;
+  state.answered = true;
+  state.total++;
+
+  const isCorrect = question.options[index].correct;
+  const feedback = document.getElementById('feedback');
+  const allOpts = document.querySelectorAll('.option');
+
+  allOpts.forEach(o => o.disabled = true);
+
+  if (isCorrect) {
+    state.correct++;
+    state.streak++;
+    feedback.className = 'feedback correct show';
+    feedback.textContent = `✅ 正确! ${['👍 太棒了','🌟 继续保持','💪 干得好','👏 准确无误','✨ 完美'][Math.floor(Math.random()*5)]}`;
+    allOpts[index].classList.add('correct');
+  } else {
+    state.streak = 0;
+    feedback.className = 'feedback wrong show';
+    feedback.textContent = `❌ 错误。正确答案是: ${question.answer}`;
+    allOpts[index].classList.add('wrong');
+    // Highlight correct answer
+    question.options.forEach((opt, i) => {
+      if (opt.correct) allOpts[i].classList.add('correct');
+    });
+  }
+
+  // Record history
+  state.history.push({
+    type, question: question.question, answer: question.answer,
+    correct: isCorrect, time: Date.now(),
+  });
+  if (state.history.length > 500) state.history = state.history.slice(-300);
+
+  save();
+  updateStats();
+}
+
+// ============================================================
+//  WORD BOOK
+// ============================================================
+function addToWordBook() {
+  const q = state.currentQuestion;
+  if (!q) return;
+  let word, meaning;
+  if (q.type === 'word') {
+    word = q.question;
+    meaning = `${q.answer} (${q.phonetic})`;
+  } else if (q.type === 'fill') {
+    word = q.answer;
+    meaning = `出自: ${q.rawSentence}`;
+  } else return;
+
+  const exists = state.wordBook.find(w => w.word === word);
+  if (exists) {
+    alert(`"${word}" 已经在单词本中了！`);
+    return;
+  }
+  state.wordBook.push({ word, meaning, added: Date.now() });
+  save();
+  alert(`✅ "${word}" 已加入单词本！`);
+}
+
+function renderWordBook() {
+  state.wordBook = JSON.parse(localStorage.getItem('en_wordbook') || '[]');
+
+  let html = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="font-size:18px;">📒 我的单词本</h3>
+        <span class="chip" style="background:var(--accent);color:#fff">${state.wordBook.length} 个单词</span>
+      </div>
+    </div>
+  `;
+
+  if (state.wordBook.length === 0) {
+    html += `<div class="empty-state"><span class="icon">📭</span><p>还没有单词，去答题时点击"加入单词本"吧！</p></div>`;
+  } else {
+    html += `<div class="word-list">`;
+    [...state.wordBook].reverse().forEach((w, i) => {
+      html += `
+        <div class="word-item">
+          <div>
+            <span class="eng">${w.word}</span>
+            <div style="font-size:12px;color:var(--sub);margin-top:2px;">${w.meaning}</div>
+          </div>
+          <button class="btn btn-small btn-secondary" onclick="removeWord(${state.wordBook.length - 1 - i})">✕</button>
+        </div>
+      `;
+    });
+    html += `</div>`;
+    html += `
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-secondary" onclick="exportWordBook()">📤 导出</button>
+        <button class="btn btn-secondary" onclick="importWordBookPrompt()">📥 导入</button>
+        <button class="btn btn-secondary" onclick="clearWordBook()">🗑️ 清空</button>
+      </div>
+    `;
+  }
+
+  main.innerHTML = html;
+}
+
+function removeWord(index) {
+  state.wordBook.splice(index, 1);
+  save();
+  renderWordBook();
+}
+
+function clearWordBook() {
+  if (confirm('确定要清空整个单词本吗？此操作不可恢复。')) {
+    state.wordBook = [];
+    save();
+    renderWordBook();
+  }
+}
+
+function exportWordBook() {
+  const data = JSON.stringify(state.wordBook, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `单词本_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function importWordBookPrompt() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (Array.isArray(data)) {
+          state.wordBook = data;
+          save();
+          renderWordBook();
+          alert(`导入成功！共 ${data.length} 个单词。`);
+        } else { alert('格式错误！'); }
+      } catch (err) { alert('文件解析失败！'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ============================================================
+//  REVIEW MODE (Flashcard)
+// ============================================================
+function renderReview() {
+  state.wordBook = JSON.parse(localStorage.getItem('en_wordbook') || '[]');
+
+  if (state.wordBook.length === 0) {
+    main.innerHTML = `<div class="empty-state"><span class="icon">📭</span><p>单词本为空，先去学习并添加单词吧！</p></div>`;
+    return;
+  }
+
+  let reviewIndex = 0;
+  let isFlipped = false;
+
+  function showCard() {
+    const word = state.wordBook[reviewIndex];
+    main.innerHTML = `
+      <div class="card">
+        <div style="text-align:center;color:var(--sub);font-size:13px;margin-bottom:8px;">
+          🔄 复习 ${reviewIndex + 1} / ${state.wordBook.length}
+        </div>
+        <div class="flashcard" onclick="flipCard()">
+          <div class="flashcard-inner" id="flashcardInner">
+            <div class="flashcard-front">${word.word}</div>
+            <div class="flashcard-back">
+              ${word.meaning}
+              <small>点击翻转</small>
+            </div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" onclick="prevCard()">⬅ 上一个</button>
+          <button class="btn btn-primary" onclick="nextCard()">下一个 ➡</button>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${((reviewIndex+1)/state.wordBook.length)*100}%"></div></div>
+      </div>
+    `;
+    window._reviewIndex = reviewIndex;
+    isFlipped = false;
+  }
+
+  window.flipCard = function() {
+    const inner = document.getElementById('flashcardInner');
+    isFlipped = !isFlipped;
+    inner.classList.toggle('flipped', isFlipped);
+  };
+
+  window.nextCard = function() {
+    reviewIndex = (window._reviewIndex + 1) % state.wordBook.length;
+    showCard();
+  };
+
+  window.prevCard = function() {
+    reviewIndex = (window._reviewIndex - 1 + state.wordBook.length) % state.wordBook.length;
+    showCard();
+  };
+
+  showCard();
+}
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+function nextQuestion(type) {
+  state.currentQuestion = null;
+  if (type === 'word') renderWordQuiz();
+  else if (type === 'fill') renderFillQuiz();
+  else if (type === 'sentence') renderSentenceQuiz();
+}
+
+function switchSentenceCat(cat) {
+  sessionStorage.setItem('sentence_cat', cat);
+  state.currentQuestion = generateSentenceQuiz(cat === 'all' ? null : cat);
+  renderSentenceQuiz();
+}
+
+function switchTab(tab) {
+  state.tab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  state.currentQuestion = null;
+
+  if (tab === 'word') renderWordQuiz();
+  else if (tab === 'fill') renderFillQuiz();
+  else if (tab === 'sentence') renderSentenceQuiz();
+  else if (tab === 'review') renderReview();
+  else if (tab === 'book') renderWordBook();
+}
+
+// ---- Event listeners ----
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+// ---- Keyboard shortcuts ----
+document.addEventListener('keydown', (e) => {
+  if (state.answered) return;
+  const keys = ['1','2','3','4','a','b','c','d'];
+  const idx = keys.indexOf(e.key.toLowerCase());
+  if (idx >= 0 && idx < 4) {
+    const opts = document.querySelectorAll('.option');
+    if (opts[idx]) opts[idx].click();
+  }
+});
+
+// ---- Init ----
+updateStats();
+renderWordQuiz();
+
+console.log('📚 英语学习助手已就绪 · CET-4 词库 ' + VOCAB.length + ' 词');
+console.log('💡 提示：答题时可按键盘 1-4 / A-D 快速选择');
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}</script>
+</body>
+</html>
