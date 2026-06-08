@@ -171,9 +171,12 @@ body{
   <div class="main" id="main"></div>
 </div>
 
+<script src="ielts_vocab.js"></script>
+<script src="ielts_fill.js"></script>
+<script src="ielts_sent.js"></script>
 <script>
 // ============================================================
-//  ENGLISH LEARNING APP — CET-4 Level
+//  ENGLISH LEARNING APP — CET-4 / IELTS 8.0
 // ============================================================
 
 // ---- State ----
@@ -922,6 +925,21 @@ function renderReview() {
 }
 
 // ============================================================
+//  DIFFICULTY SWITCHER
+// ============================================================
+function setDifficulty(level) {
+  state.difficulty = level;
+  document.getElementById('chipCet4').classList.toggle('active', level === 'cet4');
+  document.getElementById('chipIelts').classList.toggle('active', level === 'ielts');
+  state.currentQuestion = null;
+  if (state.tab === 'word') renderWordQuiz();
+  else if (state.tab === 'fill') renderFillQuiz();
+  else if (state.tab === 'sentence') renderSentenceQuiz();
+  else if (state.tab === 'review') renderReview();
+  else if (state.tab === 'book') renderWordBook();
+}
+
+// ============================================================
 //  NAVIGATION
 // ============================================================
 function nextQuestion(type) {
@@ -974,9 +992,6 @@ console.log('📚 英语学习助手已就绪 · CET-4 词库 ' + VOCAB.length +
 console.log('IELTS 8.0 data: ' + IELTS_VOCAB.length + ' words, ' + IELTS_FILL_BLANKS.length + ' blanks, ' + IELTS_SENTENCES.length + ' sentences');
 console.log('Difficulty: CET-4 / IELTS 8.0 switchable');
 </script>
-<script src="ielts_vocab.js"></script>
-<script src="ielts_fill.js"></script>
-<script src="ielts_sent.js"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}</script>
 </body>
 </html>
