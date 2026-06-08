@@ -1,9 +1,12 @@
-const CACHE_NAME = 'english-helper-v1';
+const CACHE_NAME = 'english-helper-v2';
 const ASSETS = [
   '.',
   'index.html',
   'manifest.json',
-  'icon.svg'
+  'icon.svg',
+  'ielts_vocab.js',
+  'ielts_fill.js',
+  'ielts_sent.js'
 ];
 
 // Install: cache all assets

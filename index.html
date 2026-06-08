@@ -10,7 +10,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon.svg">
-<title>英语学习助手 · CET-4</title>
+<title>English Assistant · CET-4 / IELTS 8.0</title>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -153,6 +153,11 @@ body{
     </div>
   </div>
 
+  <div style="background:var(--card);padding:6px 20px;display:flex;align-items:center;gap:10px;font-size:13px;border-bottom:1px solid var(--border)">
+    <span style="color:var(--sub);font-weight:600">Difficulty:</span>
+    <span class="chip active" id="chipCet4" onclick="setDifficulty('cet4')" style="cursor:pointer;padding:6px 16px;font-size:12px">CET-4</span>
+    <span class="chip" id="chipIelts" onclick="setDifficulty('ielts')" style="cursor:pointer;padding:6px 16px;font-size:12px">IELTS 8.0</span>
+  </div>
   <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" data-tab="word"><span class="tab-icon">📝</span>单词选择</div>
@@ -173,6 +178,7 @@ body{
 
 // ---- State ----
 const state = {
+  difficulty: 'cet4',
   tab: 'word',
   streak: 0, correct: 0, total: 0,
   currentQuestion: null,
@@ -516,18 +522,18 @@ function shuffle(arr) {
 //  GENERATE WORD QUIZ
 // ============================================================
 function generateWordQuiz() {
-  // Pick a random word as the question
-  const correctIdx = Math.floor(Math.random() * VOCAB.length);
-  const correct = VOCAB[correctIdx];
+  const bank = state.difficulty === 'ielts' ? IELTS_VOCAB : VOCAB;
+  const correctIdx = Math.floor(Math.random() * bank.length);
+  const correct = bank[correctIdx];
 
   // Pick 3 random distractors (different words)
   const distractors = [];
   const usedIdx = new Set([correctIdx]);
   while (distractors.length < 3) {
-    const idx = Math.floor(Math.random() * VOCAB.length);
+    const idx = Math.floor(Math.random() * bank.length);
     if (!usedIdx.has(idx)) {
       usedIdx.add(idx);
-      distractors.push(VOCAB[idx][1]); // Chinese meaning
+      distractors.push(bank[idx][1]);
     }
   }
 
@@ -550,7 +556,8 @@ function generateWordQuiz() {
 //  GENERATE FILL-IN-BLANK QUIZ
 // ============================================================
 function generateFillQuiz() {
-  const item = FILL_BLANKS[Math.floor(Math.random() * FILL_BLANKS.length)];
+  const bank = state.difficulty === 'ielts' ? IELTS_FILL_BLANKS : FILL_BLANKS;
+  const item = bank[Math.floor(Math.random() * bank.length)];
   const [sentence, correct, ...distractors] = item;
   const options = shuffle([
     { text: correct, correct: true },
@@ -569,9 +576,10 @@ function generateFillQuiz() {
 //  GENERATE SENTENCE COMPREHENSION QUIZ
 // ============================================================
 function generateSentenceQuiz(category = null) {
-  let pool = SENTENCES;
+  const bank = state.difficulty === 'ielts' ? IELTS_SENTENCES : SENTENCES;
+  let pool = bank;
   if (category && category !== 'all') {
-    pool = SENTENCES.filter(s => s[4] === category);
+    pool = bank.filter(s => s[4] === category);
   }
   const item = pool[Math.floor(Math.random() * pool.length)];
   const [english, chinese, wrong1, wrong2, cat] = item;
@@ -963,8 +971,12 @@ updateStats();
 renderWordQuiz();
 
 console.log('📚 英语学习助手已就绪 · CET-4 词库 ' + VOCAB.length + ' 词');
-console.log('💡 提示：答题时可按键盘 1-4 / A-D 快速选择');
+console.log('IELTS 8.0 data: ' + IELTS_VOCAB.length + ' words, ' + IELTS_FILL_BLANKS.length + ' blanks, ' + IELTS_SENTENCES.length + ' sentences');
+console.log('Difficulty: CET-4 / IELTS 8.0 switchable');
 </script>
+<script src="ielts_vocab.js"></script>
+<script src="ielts_fill.js"></script>
+<script src="ielts_sent.js"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}</script>
 </body>
 </html>
